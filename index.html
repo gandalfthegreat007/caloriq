@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CalTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#080810;font-family:'Inter',sans-serif;color:#f0eeff;display:flex;justify-content:center;min-height:100vh}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#7c6af7;border-radius:2px}
+input,button{outline:none;font-family:'Inter',sans-serif}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useMemo,useEffect}=React;
+const FK="calDB_foods",LK="calDB_log",PK="calDB_profile",WK="calDB_weights";
+const DF=[
+  {id:1,name:"Boiled Egg",cal:78,protein:6,carbs:1,fat:5,unit:"piece"},
+  {id:2,name:"Roti (Wheat)",cal:71,protein:2.7,carbs:15,fat:0.4,unit:"piece"},
+  {id:3,name:"Maida Roti",cal:90,protein:2.4,carbs:18,fat:1.2,unit:"piece"},
+  {id:4,name:"Dahi (Curd)",cal:61,protein:3.5,carbs:4.7,fat:3.3,unit:"100g"},
+  {id:5,name:"Chole Bhature",cal:450,protein:12,carbs:65,fat:16,unit:"serving"},
+  {id:6,name:"Dal Tadka",cal:130,protein:8,carbs:18,fat:3,unit:"bowl"},
+  {id:7,name:"Paneer",cal:265,protein:18,carbs:3.7,fat:20,unit:"100g"},
+  {id:8,name:"Basmati Rice",cal:121,protein:2.5,carbs:26,fat:0.4,unit:"100g"},
+  {id:9,name:"Aloo Paratha",cal:300,protein:6,carbs:45,fat:11,unit:"piece"},
+  {id:10,name:"Samosa",cal:262,protein:4,carbs:32,fat:13,unit:"piece"},
+  {id:11,name:"Idli",cal:39,protein:2,carbs:8,fat:0.2,unit:"piece"},
+  {id:12,name:"Dosa (plain)",cal:133,protein:3.5,carbs:25,fat:2.5,unit:"piece"},
+  {id:13,name:"Masala Dosa",cal:210,protein:5,carbs:35,fat:6,unit:"piece"},
+  {id:14,name:"Upma",cal:200,protein:5,carbs:30,fat:6,unit:"bowl"},
+  {id:15,name:"Poha",cal:180,protein:4,carbs:35,fat:3,unit:"bowl"},
+  {id:16,name:"Rajma Curry",cal:120,protein:7,carbs:20,fat:2,unit:"bowl"},
+  {id:17,name:"Palak Paneer",cal:180,protein:9,carbs:8,fat:12,unit:"bowl"},
+  {id:18,name:"Butter Chicken",cal:250,protein:22,carbs:8,fat:15,unit:"bowl"},
+  {id:19,name:"Chicken Biryani",cal:290,protein:18,carbs:35,fat:9,unit:"bowl"},
+  {id:20,name:"Egg Bhurji",cal:180,protein:12,carbs:3,fat:13,unit:"serving"},
+  {id:21,name:"Moong Dal",cal:114,protein:8,carbs:19,fat:0.4,unit:"bowl"},
+  {id:22,name:"Sabzi (Mixed Veg)",cal:80,protein:2.5,carbs:12,fat:2.5,unit:"bowl"},
+  {id:23,name:"Chapati with Ghee",cal:120,protein:3,carbs:17,fat:4.5,unit:"piece"},
+  {id:24,name:"Puri",cal:110,protein:2.4,carbs:14,fat:5,unit:"piece"},
+  {id:25,name:"Lassi (sweet)",cal:160,protein:5,carbs:26,fat:4,unit:"glass"},
+  {id:26,name:"Masala Chai",cal:50,protein:1.5,carbs:7,fat:1.5,unit:"cup"},
+  {id:27,name:"Banana",cal:89,protein:1.1,carbs:23,fat:0.3,unit:"piece"},
+  {id:28,name:"Apple",cal:52,protein:0.3,carbs:14,fat:0.2,unit:"piece"},
+  {id:29,name:"Orange",cal:47,protein:0.9,carbs:12,fat:0.1,unit:"piece"},
+  {id:30,name:"Milk (full fat)",cal:61,protein:3.2,carbs:4.8,fat:3.3,unit:"100ml"},
+  {id:31,name:"Skim Milk",cal:35,protein:3.4,carbs:5,fat:0.1,unit:"100ml"},
+  {id:32,name:"Almonds",cal:164,protein:6,carbs:6,fat:14,unit:"handful"},
+  {id:33,name:"Peanuts",cal:161,protein:7,carbs:5,fat:14,unit:"28g"},
+  {id:34,name:"Oats (cooked)",cal:71,protein:2.5,carbs:12,fat:1.5,unit:"100g"},
+  {id:35,name:"Cornflakes",cal:357,protein:7,carbs:84,fat:0.4,unit:"100g"},
+  {id:36,name:"Sandwich (veg)",cal:210,protein:7,carbs:35,fat:5,unit:"piece"},
+  {id:37,name:"Vada Pav",cal:290,protein:6,carbs:45,fat:10,unit:"piece"},
+  {id:38,name:"Pav Bhaji",cal:350,protein:8,carbs:55,fat:11,unit:"serving"},
+  {id:39,name:"Chicken (grilled)",cal:165,protein:31,carbs:0,fat:3.6,unit:"100g"},
+  {id:40,name:"Fish (rohu)",cal:97,protein:16,carbs:0,fat:3.5,unit:"100g"},
+  {id:41,name:"Mutton Curry",cal:260,protein:20,carbs:5,fat:18,unit:"bowl"},
+  {id:42,name:"Besan Chilla",cal:180,protein:9,carbs:22,fat:5,unit:"piece"},
+  {id:43,name:"Sprouts Salad",cal:80,protein:6,carbs:12,fat:0.5,unit:"bowl"},
+  {id:44,name:"Cucumber",cal:16,protein:0.7,carbs:3.6,fat:0.1,unit:"100g"},
+  {id:45,name:"Tomato",cal:18,protein:0.9,carbs:3.9,fat:0.2,unit:"piece"},
+  {id:46,name:"Mango",cal:60,protein:0.8,carbs:15,fat:0.4,unit:"100g"},
+  {id:47,name:"Khichdi",cal:160,protein:5,carbs:28,fat:3,unit:"bowl"},
+  {id:48,name:"Thepla",cal:130,protein:4,carbs:20,fat:4,unit:"piece"},
+  {id:49,name:"Dhokla",cal:75,protein:3,carbs:14,fat:1,unit:"piece"},
+  {id:50,name:"Gulab Jamun",cal:150,protein:2,carbs:26,fat:5,unit:"piece"},
+  {id:51,name:"Bread Pakora",cal:310,protein:7,carbs:42,fat:13,unit:"piece"},
+  {id:52,name:"Gobi Paratha",cal:280,protein:6,carbs:40,fat:10,unit:"piece"},
+  {id:53,name:"Pizza Slice (veg)",cal:250,protein:9,carbs:33,fat:9,unit:"slice"},
+  {id:54,name:"Pizza Slice (chicken)",cal:290,protein:14,carbs:32,fat:12,unit:"slice"},
+  {id:55,name:"Sandwich (chicken)",cal:290,protein:18,carbs:32,fat:9,unit:"piece"},
+  {id:56,name:"Paneer Paratha",cal:320,protein:10,carbs:40,fat:13,unit:"piece"},
+  {id:57,name:"Dal Makhani",cal:195,protein:9,carbs:22,fat:8,unit:"bowl"},
+  {id:58,name:"Fried Rice (veg)",cal:220,protein:5,carbs:42,fat:4,unit:"bowl"},
+  {id:59,name:"Maggi Noodles",cal:375,protein:8,carbs:57,fat:13,unit:"packet"},
+  {id:60,name:"Burger (veg)",cal:310,protein:9,carbs:45,fat:10,unit:"piece"},
+  {id:61,name:"Burger (chicken)",cal:400,protein:22,carbs:40,fat:18,unit:"piece"},
+  {id:62,name:"Jalebi",cal:150,protein:1.5,carbs:35,fat:3.5,unit:"piece"},
+  {id:63,name:"Rasgulla",cal:110,protein:3,carbs:22,fat:2,unit:"piece"},
+  {id:64,name:"Halwa (sooji)",cal:220,protein:3,carbs:35,fat:8,unit:"serving"},
+  {id:65,name:"Uttapam",cal:170,protein:5,carbs:30,fat:4,unit:"piece"},
+];
+
+const ld=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
+const tod=()=>new Date().toISOString().slice(0,10);
+const fmt=n=>Math.round(n);
+const calcBMI=(w,h)=>w/((h/100)**2);
+const bmiCat=b=>b<18.5?{l:"Underweight",c:"#60a5fa"}:b<25?{l:"Normal",c:"#4ade80"}:b<30?{l:"Overweight",c:"#fbbf24"}:{l:"Obese",c:"#f87171"};
+const calcTDEE=(w,h,age,g)=>Math.round(((g==="male"?10*w+6.25*h-5*age+5:10*w+6.25*h-5*age-161))*1.375);
+
+// Design tokens
+const C={
+  bg:"#080810",bg2:"#0e0e1a",card:"#12121f",card2:"#1a1a2e",
+  accent:"#7c6af7",accent2:"#a78bfa",green:"#4ade80",red:"#f87171",yellow:"#fbbf24",
+  text:"#f0eeff",sub:"#8b85b0",dim:"#3d3a5c",border:"#1e1e35",
+};
+
+function Ring({pct,size=88,stroke=8,color=C.accent,bg=C.dim,children}){
+  const r=(size-stroke)/2,circ=2*Math.PI*r,dash=circ*(Math.min(pct,100)/100);
+  return(
+    <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
+      <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={bg} strokeWidth={stroke}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          style={{transition:"stroke-dasharray 0.6s ease",filter:`drop-shadow(0 0 6px ${color}88)`}}/>
+      </svg>
+      <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>{children}</div>
+    </div>
+  );
+}
+
+function Bar({val,max,color=C.accent,height=12}){
+  const pct=Math.min(100,(val/max)*100);
+  return(
+    <div style={{background:C.dim,borderRadius:99,height,overflow:"hidden"}}>
+      <div style={{width:pct+"%",height:"100%",background:`linear-gradient(90deg,${color},${color}bb)`,borderRadius:99,transition:"width 0.5s ease",boxShadow:`0 0 8px ${color}66`}}/>
+    </div>
+  );
+}
+
+function Pill({children,active,onClick}){
+  return <button onClick={onClick} style={{padding:"8px 18px",borderRadius:99,border:"none",cursor:"pointer",fontSize:13,fontWeight:600,background:active?C.accent:C.card2,color:active?"#fff":C.sub,transition:"all 0.2s",boxShadow:active?`0 0 16px ${C.accent}55`:"none"}}>{children}</button>;
+}
+
+function Card({children,style={}}){
+  return <div style={{background:C.card,borderRadius:20,padding:18,marginBottom:14,border:`1px solid ${C.border}`,...style}}>{children}</div>;
+}
+
+function Input({style={},...p}){
+  return <input style={{width:"100%",background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,color:C.text,padding:"11px 14px",fontSize:14,...style}} {...p}/>;
+}
+
+function BtnPrimary({children,onClick,style={}}){
+  return <button onClick={onClick} style={{width:"100%",padding:"13px",background:`linear-gradient(135deg,${C.accent},${C.accent2})`,border:"none",borderRadius:14,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:`0 4px 20px ${C.accent}44`,...style}}>{children}</button>;
+}
+
+function BtnSm({children,onClick,style={}}){
+  return <button onClick={onClick} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:10,color:C.sub,padding:"6px 10px",cursor:"pointer",fontSize:13,...style}}>{children}</button>;
+}
+
+const TABS=[{id:"Log",ic:"🍽️"},{id:"Dashboard",ic:"📊"},{id:"Weight",ic:"⚖️"},{id:"Foods",ic:"🥗"},{id:"Profile",ic:"👤"}];
+
+function App(){
+  const [tab,setTab]=useState("Log");
+  const [view,setView]=useState("Week");
+  const [foods,setFoods]=useState(()=>ld(FK,DF));
+  const [log,setLog]=useState(()=>ld(LK,{}));
+  const [profile,setProfile]=useState(()=>ld(PK,{weight:"",height:"",age:"",gender:"male",target:"",startDate:tod()}));
+  const [weights,setWeights]=useState(()=>ld(WK,[]));
+  const [date,setDate]=useState(tod());
+  const [search,setSearch]=useState("");
+  const [selFood,setSelFood]=useState(null);
+  const [qty,setQty]=useState(1);
+  const [editEntry,setEditEntry]=useState(null);
+  const [showFF,setShowFF]=useState(false);
+  const [newFood,setNewFood]=useState({name:"",cal:"",protein:"",carbs:"",fat:"",unit:"piece"});
+  const [editFood,setEditFood]=useState(null);
+  const [wtInput,setWtInput]=useState("");
+  const [wtDate,setWtDate]=useState(tod());
+  const [msg,setMsg]=useState("");
+
+  const notify=m=>{setMsg(m);setTimeout(()=>setMsg(""),2000);};
+  const dayLog=log[date]||[];
+  const dayTotals=useMemo(()=>dayLog.reduce((a,e)=>({cal:a.cal+e.cal,protein:a.protein+e.protein,carbs:a.carbs+e.carbs,fat:a.fat+e.fat}),{cal:0,protein:0,carbs:0,fat:0}),[dayLog]);
+
+  const saveProf=p=>{setProfile(p);sv(PK,p);};
+  const {weight:w,height:h,age,gender,target:tw,startDate}=profile;
+  const bmi=w&&h?calcBMI(+w,+h).toFixed(1):null;
+  const bc=bmi?bmiCat(+bmi):null;
+  const tdee=w&&h&&age?calcTDEE(+w,+h,+age,gender):null;
+  const defCal=tdee?tdee-500:null;
+  const kgToLose=tw&&w?+w-+tw:null;
+  const weeksNeeded=kgToLose>0?Math.ceil(kgToLose/0.45):null;
+  const allLogDays=Object.keys(log).sort();
+  const loggedDays=allLogDays.filter(d=>(log[d]||[]).length>0).length;
+  const totalCal=allLogDays.reduce((s,d)=>s+(log[d]||[]).reduce((a,e)=>a+e.cal,0),0);
+  const avgCal=loggedDays>0?totalCal/loggedDays:0;
+  const actDeficit=tdee?tdee-avgCal:0;
+  const actKgWk=(actDeficit*7)/7700;
+  const onTrack=actDeficit>=450;
+  const sortedW=[...weights].sort((a,b)=>a.date.localeCompare(b.date));
+  const latestW=sortedW.length>0?sortedW[sortedW.length-1].weight:null;
+  const startW=sortedW.length>0?+sortedW[0].weight:(w?+w:null);
+  const actKgLost=startW&&latestW?startW-+latestW:null;
+  const expLostByNow=()=>{
+    if(!startDate||!tdee)return 0;
+    const days=Math.max(0,(new Date(tod())-new Date(startDate))/86400000);
+    return(500*days)/7700;
+  };
+
+  const addEntry=()=>{
+    if(!selFood)return;
+    const f=foods.find(x=>x.id===selFood);
+    const e={id:Date.now(),foodId:f.id,name:f.name,qty,cal:fmt(f.cal*qty),protein:+(f.protein*qty).toFixed(1),carbs:+(f.carbs*qty).toFixed(1),fat:+(f.fat*qty).toFixed(1),unit:f.unit};
+    const u={...log,[date]:[...(log[date]||[]),e]};
+    setLog(u);sv(LK,u);setSelFood(null);setQty(1);setSearch("");notify("✓ Added!");
+  };
+  const delEntry=id=>{const u={...log,[date]:dayLog.filter(e=>e.id!==id)};setLog(u);sv(LK,u);};
+  const updEntry=()=>{
+    const f=foods.find(x=>x.id===editEntry.foodId);
+    const u={...log,[date]:dayLog.map(e=>e.id===editEntry.id?{...e,qty:editEntry.qty,cal:fmt(f.cal*editEntry.qty),protein:+(f.protein*editEntry.qty).toFixed(1),carbs:+(f.carbs*editEntry.qty).toFixed(1),fat:+(f.fat*editEntry.qty).toFixed(1)}:e)};
+    setLog(u);sv(LK,u);setEditEntry(null);notify("✓ Updated!");
+  };
+  const addWt=()=>{
+    if(!wtInput)return;
+    const ex=weights.find(x=>x.date===wtDate);
+    const u=ex?weights.map(x=>x.date===wtDate?{...x,weight:+wtInput}:x):[...weights,{date:wtDate,weight:+wtInput}];
+    setWeights(u);sv(WK,u);setWtInput("");notify("✓ Weight saved!");
+  };
+  const addFood=()=>{
+    if(!newFood.name||!newFood.cal)return;
+    const f={id:Date.now(),...newFood,cal:+newFood.cal,protein:+newFood.protein||0,carbs:+newFood.carbs||0,fat:+newFood.fat||0};
+    const u=[...foods,f];setFoods(u);sv(FK,u);
+    setNewFood({name:"",cal:"",protein:"",carbs:"",fat:"",unit:"piece"});setShowFF(false);notify("✓ Food added!");
+  };
+  const updFood=()=>{
+    const u=foods.map(f=>f.id===editFood.id?{...editFood,cal:+editFood.cal,protein:+editFood.protein,carbs:+editFood.carbs,fat:+editFood.fat}:f);
+    setFoods(u);sv(FK,u);setEditFood(null);notify("✓ Updated!");
+  };
+  const getDayData=d=>(log[d]||[]).reduce((a,e)=>({cal:a.cal+e.cal,protein:a.protein+e.protein}),{cal:0,protein:0});
+  const weekDays=useMemo(()=>{const d=new Date(date);d.setDate(d.getDate()-d.getDay());return Array.from({length:7},(_,i)=>{const x=new Date(d);x.setDate(d.getDate()+i);return x.toISOString().slice(0,10);});},[date]);
+  const monthDays=useMemo(()=>{const d=new Date(date);const y=d.getFullYear();const m=d.getMonth();return Array.from({length:new Date(y,m+1,0).getDate()},(_,i)=>`${y}-${String(m+1).padStart(2,"0")}-${String(i+1).padStart(2,"0")}`);},[date]);
+  const aggDays=view==="Week"?weekDays:view==="Month"?monthDays:[date];
+  const aggData=aggDays.map(d=>({date:d,...getDayData(d)}));
+  const aggTotal=aggData.reduce((a,x)=>({cal:a.cal+x.cal,protein:a.protein+x.protein}),{cal:0,protein:0});
+  const barMax=Math.max(...aggData.map(x=>x.cal),defCal||1500,100);
+  const filteredFoods=foods.filter(f=>f.name.toLowerCase().includes(search.toLowerCase()));
+  const prevFood=selFood?foods.find(f=>f.id===selFood):null;
+  const calPct=defCal?Math.min(100,(dayTotals.cal/defCal)*100):0;
+  const ringColor=calPct>100?C.red:calPct>80?C.yellow:C.accent;
+  const wMax=startW?startW+1:80;const wMin=tw?+tw-1:(startW?startW-10:60);
+
+  const dayNames=["Su","Mo","Tu","We","Th","Fr","Sa"];
+
+  return(
+    <div style={{maxWidth:480,minHeight:"100vh",margin:"0 auto",paddingBottom:90,background:C.bg}}>
+
+      {/* Toast */}
+      {msg&&<div style={{position:"fixed",top:20,left:"50%",transform:"translateX(-50%)",background:`linear-gradient(135deg,${C.accent},${C.accent2})`,color:"#fff",padding:"10px 24px",borderRadius:99,fontSize:13,fontWeight:700,zIndex:999,boxShadow:`0 8px 32px ${C.accent}55`,whiteSpace:"nowrap"}}>{msg}</div>}
+
+      {/* LOG */}
+      {tab==="Log"&&(
+        <div>
+          {/* Header */}
+          <div style={{padding:"28px 20px 20px",background:`linear-gradient(180deg,#0e0e1a,${C.bg})`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:C.sub,letterSpacing:2,textTransform:"uppercase"}}>Today's Log</div>
+                <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+                  style={{background:"none",border:"none",color:C.text,fontSize:22,fontWeight:800,cursor:"pointer",padding:0,marginTop:2}}/>
+              </div>
+              <div style={{background:C.card2,border:`1px solid ${C.border}`,borderRadius:14,padding:"8px 14px",textAlign:"center"}}>
+                <div style={{fontSize:10,color:C.sub}}>entries</div>
+                <div style={{fontSize:20,fontWeight:800,color:C.accent}}>{dayLog.length}</div>
+              </div>
+            </div>
+
+            {/* Hero calorie ring */}
+            <div style={{display:"flex",alignItems:"center",gap:20,background:C.card,borderRadius:24,padding:20,border:`1px solid ${C.border}`}}>
+              <Ring pct={calPct} size={100} stroke={9} color={ringColor}>
+                <div style={{fontSize:22,fontWeight:900,color:C.text,lineHeight:1}}>{fmt(dayTotals.cal)}</div>
+                <div style={{fontSize:9,color:C.sub,fontWeight:600}}>kcal</div>
+              </Ring>
+              <div style={{flex:1}}>
+                {defCal&&<div style={{fontSize:13,color:C.sub,marginBottom:10}}>
+                  {defCal-fmt(dayTotals.cal)>0
+                    ?<><span style={{color:C.green,fontWeight:700}}>{defCal-fmt(dayTotals.cal)}</span> kcal remaining</>
+                    :<><span style={{color:C.red,fontWeight:700}}>{fmt(dayTotals.cal)-defCal}</span> kcal over budget</>}
+                </div>}
+                {[["💪",dayTotals.protein+"g","Protein",C.accent2],["🍚",dayTotals.carbs+"g","Carbs",C.yellow],["🧈",dayTotals.fat+"g","Fat",C.red]].map(([ic,v,l,c])=>(
+                  <div key={l} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                    <span style={{fontSize:11}}>{ic}</span>
+                    <div style={{flex:1,background:C.dim,borderRadius:99,height:4}}>
+                      <div style={{width:Math.min(100,(parseFloat(v)/100)*100)+"%",height:4,background:c,borderRadius:99}}/>
+                    </div>
+                    <span style={{fontSize:12,fontWeight:700,color:C.text,minWidth:34}}>{fmt(parseFloat(v))}g</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Add food */}
+          <div style={{padding:"0 16px"}}>
+            <Card>
+              <div style={{fontWeight:700,marginBottom:12,fontSize:15,color:C.text}}>＋ Add Food</div>
+              <Input placeholder="🔍 Search food..." value={search} onChange={e=>{setSearch(e.target.value);setSelFood(null);}}/>
+              {search&&!selFood&&(
+                <div style={{maxHeight:180,overflowY:"auto",marginTop:8,background:C.bg2,borderRadius:14,border:`1px solid ${C.border}`}}>
+                  {filteredFoods.slice(0,25).map(f=>(
+                    <div key={f.id} onClick={()=>{setSelFood(f.id);setSearch(f.name);setQty(1);}}
+                      style={{padding:"10px 14px",cursor:"pointer",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:14,fontWeight:500}}>{f.name}</span>
+                      <span style={{fontSize:12,color:C.accent,fontWeight:600}}>{f.cal} kcal</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {prevFood&&(
+                <div style={{marginTop:12,background:C.bg2,borderRadius:14,padding:14,border:`1px solid ${C.border}`}}>
+                  <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:10}}>{prevFood.name}</div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                    <span style={{fontSize:12,color:C.sub}}>Qty ({prevFood.unit})</span>
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <BtnSm onClick={()=>setQty(q=>Math.max(0.5,q-0.5))} style={{fontSize:18,padding:"4px 12px"}}>−</BtnSm>
+                      <span style={{fontWeight:800,fontSize:18,minWidth:30,textAlign:"center",color:C.text}}>{qty}</span>
+                      <BtnSm onClick={()=>setQty(q=>q+0.5)} style={{fontSize:18,padding:"4px 12px"}}>+</BtnSm>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,marginBottom:12}}>
+                    {[[fmt(prevFood.cal*qty),"kcal",C.accent],[+(prevFood.protein*qty).toFixed(1)+"g","prot",C.accent2],[(prevFood.carbs*qty).toFixed(1)+"g","carbs",C.yellow],[(prevFood.fat*qty).toFixed(1)+"g","fat",C.red]].map(([v,l,c])=>(
+                      <div key={l} style={{flex:1,background:C.card,borderRadius:10,padding:"8px 4px",textAlign:"center",border:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:14,fontWeight:700,color:c}}>{v}</div>
+                        <div style={{fontSize:9,color:C.sub}}>{l}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <BtnPrimary onClick={addEntry}>Add to Log</BtnPrimary>
+                </div>
+              )}
+            </Card>
+
+            {/* Entries */}
+            {dayLog.length===0?(
+              <div style={{textAlign:"center",padding:"40px 20px"}}>
+                <div style={{fontSize:48,marginBottom:12}}>🥗</div>
+                <div style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:6}}>Start logging your meals</div>
+                <div style={{fontSize:13,color:C.sub}}>Search for a food above to begin</div>
+              </div>
+            ):dayLog.map(e=>(
+              <div key={e.id} style={{background:C.card,borderRadius:18,padding:"14px 16px",marginBottom:10,border:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                {editEntry?.id===e.id?(
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,fontWeight:600,marginBottom:8,color:C.text}}>{e.name}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <BtnSm onClick={()=>setEditEntry(x=>({...x,qty:Math.max(0.5,x.qty-0.5)}))} style={{fontSize:16}}>−</BtnSm>
+                      <span style={{fontWeight:800,fontSize:16,color:C.text}}>{editEntry.qty}</span>
+                      <BtnSm onClick={()=>setEditEntry(x=>({...x,qty:x.qty+0.5}))} style={{fontSize:16}}>+</BtnSm>
+                      <BtnSm onClick={updEntry} style={{background:C.accent,color:"#fff",border:"none",fontWeight:700}}>✓</BtnSm>
+                      <BtnSm onClick={()=>setEditEntry(null)}>✕</BtnSm>
+                    </div>
+                  </div>
+                ):(
+                  <>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:14,fontWeight:600,color:C.text}}>{e.name} <span style={{color:C.dim,fontSize:12}}>×{e.qty}</span></div>
+                      <div style={{fontSize:12,color:C.accent,marginTop:3,fontWeight:600}}>{e.cal} kcal <span style={{color:C.sub,fontWeight:400}}>· {e.protein}g protein</span></div>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      <BtnSm onClick={()=>setEditEntry({...e})}>✏️</BtnSm>
+                      <BtnSm onClick={()=>delEntry(e.id)} style={{color:C.red}}>🗑</BtnSm>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* DASHBOARD */}
+      {tab==="Dashboard"&&(
+        <div style={{padding:"24px 16px 0"}}>
+          <div style={{fontSize:24,fontWeight:800,marginBottom:20}}>Dashboard</div>
+          <div style={{display:"flex",gap:8,marginBottom:20}}>
+            {["Day","Week","Month"].map(v=><Pill key={v} active={view===v} onClick={()=>setView(v)}>{v}</Pill>)}
+          </div>
+
+          {/* Stats grid */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+            {[["🔥",fmt(aggTotal.cal),"kcal consumed",C.accent],["💪",fmt(aggTotal.protein)+"g","protein",C.accent2],
+              [aggData.filter(x=>x.cal>0).length+"/"+aggDays.length,"","days logged",C.green],
+              [fmt(aggTotal.cal/(aggDays.length||1)),"kcal","avg / day",C.yellow]].map(([v,u,l,c],i)=>(
+              <Card key={i} style={{padding:"16px",marginBottom:0}}>
+                <div style={{fontSize:26,fontWeight:900,color:c,lineHeight:1}}>{v}<span style={{fontSize:14,fontWeight:600}}>{u}</span></div>
+                <div style={{fontSize:11,color:C.sub,marginTop:4}}>{l}</div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Bar chart */}
+          <Card>
+            <div style={{fontSize:13,fontWeight:600,color:C.sub,marginBottom:14}}>
+              Calorie Intake {defCal&&<span style={{color:C.yellow}}>— Budget {defCal} kcal</span>}
+            </div>
+            <div style={{display:"flex",alignItems:"flex-end",gap:4,height:90}}>
+              {aggData.map((d,i)=>{
+                const h=Math.max(3,(d.cal/barMax)*80);const over=d.cal>(defCal||9999);
+                return(
+                  <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                    <div style={{width:"100%",height:h,background:over?`linear-gradient(180deg,${C.red},${C.red}88)`:`linear-gradient(180deg,${C.accent},${C.accent}88)`,borderRadius:"6px 6px 0 0",boxShadow:over?`0 0 8px ${C.red}44`:`0 0 8px ${C.accent}44`}}/>
+                    {view!=="Month"&&<div style={{fontSize:8,color:C.sub}}>{view==="Week"?dayNames[new Date(d.date).getDay()]:d.date.slice(8)}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Deficit performance */}
+          {tdee&&loggedDays>0&&(
+            <Card>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:14,color:C.text}}>🎯 Are You On Track?</div>
+              <div style={{display:"flex",gap:10,marginBottom:14}}>
+                {[["Target","-500",C.accent,"kcal/day"],["Actual",(actDeficit>0?"−":"+")+fmt(Math.abs(actDeficit)),onTrack?C.green:C.red,"kcal/day"],["Pace",actKgWk>0?actKgWk.toFixed(2):"0",actKgWk>=0.45?C.green:C.red,"kg/week"]].map(([l,v,c,u])=>(
+                  <div key={l} style={{flex:1,background:C.bg2,borderRadius:14,padding:"12px 8px",textAlign:"center",border:`1px solid ${C.border}`}}>
+                    <div style={{fontSize:9,color:C.sub,marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>{l}</div>
+                    <div style={{fontSize:18,fontWeight:900,color:c}}>{v}</div>
+                    <div style={{fontSize:9,color:C.sub}}>{u}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{background:onTrack?"#0a2416":"#2a0a0a",borderRadius:14,padding:"12px 14px",fontSize:13,border:`1px solid ${onTrack?C.green+"33":C.red+"33"}`}}>
+                {onTrack?`✅ Great work! Losing ~${actKgWk.toFixed(2)}kg/week — right on target.`:
+                  actDeficit>0?`⚠️ Losing ${actKgWk.toFixed(2)}kg/wk. Need ${fmt(500-actDeficit)} fewer kcal/day.`:
+                  `🚨 Avg intake (${fmt(avgCal)} kcal) exceeds TDEE (${tdee} kcal). No deficit.`}
+              </div>
+              {kgToLose>0&&weeksNeeded&&(
+                <div style={{marginTop:12,display:"flex",gap:10}}>
+                  <div style={{flex:1,background:C.bg2,borderRadius:12,padding:12,border:`1px solid ${C.border}`}}>
+                    <div style={{fontSize:10,color:C.sub}}>At actual pace</div>
+                    <div style={{fontSize:15,fontWeight:800,color:C.yellow}}>{actKgWk>0?`${Math.ceil(kgToLose/actKgWk)} wks`:"∞"}</div>
+                    <div style={{fontSize:10,color:C.sub}}>{actKgWk>0?`${(kgToLose/actKgWk/4.3).toFixed(1)} months`:""}</div>
+                  </div>
+                  <div style={{flex:1,background:C.bg2,borderRadius:12,padding:12,border:`1px solid ${C.border}`}}>
+                    <div style={{fontSize:10,color:C.sub}}>At 0.45kg/wk</div>
+                    <div style={{fontSize:15,fontWeight:800,color:C.green}}>{weeksNeeded} wks</div>
+                    <div style={{fontSize:10,color:C.sub}}>{(weeksNeeded/4.3).toFixed(1)} months</div>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {bmi&&(
+            <Card>
+              <div style={{display:"flex",alignItems:"center",gap:16}}>
+                <Ring pct={Math.min(100,((+bmi-10)/30)*100)} size={80} stroke={8} color={bc.c}>
+                  <div style={{fontSize:18,fontWeight:900,color:bc.c}}>{bmi}</div>
+                </Ring>
+                <div>
+                  <div style={{fontSize:16,fontWeight:700,color:bc.c,marginBottom:4}}>{bc.l}</div>
+                  {tdee&&<>
+                    <div style={{fontSize:12,color:C.sub}}>TDEE: <span style={{color:C.text,fontWeight:600}}>{tdee} kcal</span></div>
+                    <div style={{fontSize:12,color:C.sub}}>Budget: <span style={{color:C.accent,fontWeight:600}}>{defCal} kcal/day</span></div>
+                    {kgToLose>0&&<div style={{fontSize:12,color:C.sub}}>Goal: <span style={{color:C.green,fontWeight:600}}>{w} → {tw} kg</span></div>}
+                  </>}
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* WEIGHT */}
+      {tab==="Weight"&&(
+        <div style={{padding:"24px 16px 0"}}>
+          <div style={{fontSize:24,fontWeight:800,marginBottom:20}}>Weight Log</div>
+          <Card>
+            <div style={{fontWeight:700,marginBottom:12,fontSize:15}}>📥 Log Today's Weight</div>
+            <div style={{display:"flex",gap:10,marginBottom:12}}>
+              <Input type="date" value={wtDate} onChange={e=>setWtDate(e.target.value)} style={{flex:1}}/>
+              <Input type="number" placeholder="kg" value={wtInput} onChange={e=>setWtInput(e.target.value)} step="0.1" style={{flex:1}}/>
+            </div>
+            <BtnPrimary onClick={addWt}>Save Weight</BtnPrimary>
+          </Card>
+
+          {(latestW||w)&&tw&&(
+            <Card>
+              <div style={{fontWeight:700,marginBottom:14,fontSize:15}}>📊 Progress</div>
+              <div style={{display:"flex",gap:10,marginBottom:16}}>
+                {[["Start",`${startW||w||"?"}`,C.sub],["Current",`${latestW||w||"?"}`,C.accent],["Goal",`${tw}`,C.green]].map(([l,v,c])=>(
+                  <div key={l} style={{flex:1,background:C.bg2,borderRadius:16,padding:"14px 8px",textAlign:"center",border:`1px solid ${C.border}`}}>
+                    <div style={{fontSize:10,color:C.sub,marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>{l}</div>
+                    <div style={{fontSize:24,fontWeight:900,color:c}}>{v}</div>
+                    <div style={{fontSize:10,color:C.sub}}>kg</div>
+                  </div>
+                ))}
+              </div>
+
+              {kgToLose>0&&(
+                <div style={{marginBottom:14}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:C.sub,marginBottom:6}}>
+                    <span>Lost: <span style={{color:actKgLost>0?C.green:C.sub,fontWeight:700}}>{actKgLost!=null?actKgLost.toFixed(1):"0"} kg</span></span>
+                    <span>Target: <span style={{color:C.yellow,fontWeight:700}}>{kgToLose} kg</span></span>
+                  </div>
+                  <div style={{background:C.dim,borderRadius:99,height:14,position:"relative",overflow:"hidden"}}>
+                    {tdee&&startDate&&(()=>{const ep=Math.min(100,(expLostByNow()/kgToLose)*100);return<div style={{position:"absolute",left:0,top:0,width:ep+"%",height:14,background:`${C.yellow}33`}}/>;})()}
+                    <div style={{width:Math.min(100,Math.max(0,((actKgLost||0)/kgToLose)*100))+"%",height:14,background:`linear-gradient(90deg,${C.accent},${C.green})`,borderRadius:99,position:"relative",zIndex:2,boxShadow:`0 0 12px ${C.accent}66`}}/>
+                  </div>
+                  <div style={{fontSize:9,color:C.sub,marginTop:4,display:"flex",justifyContent:"space-between"}}><span>🟡 Expected pace</span><span>🟣 Actual</span></div>
+                </div>
+              )}
+
+              {tdee&&startDate&&kgToLose>0&&(()=>{
+                const exp=expLostByNow();const actual=actKgLost||0;const onTr=actual-exp>=-0.5;
+                const remKg=kgToLose-actual;const daysLeft=actKgWk>0?Math.ceil((remKg/actKgWk)*7):null;
+                return(
+                  <div style={{background:onTr?"#0a2416":"#2a1a0a",borderRadius:14,padding:"12px 14px",border:`1px solid ${onTr?C.green+"33":C.yellow+"33"}`}}>
+                    <div style={{fontSize:13,fontWeight:700,marginBottom:6,color:onTr?C.green:C.yellow}}>{onTr?"✅ On track!":"⚠️ "+Math.abs(actual-exp).toFixed(1)+"kg behind expected"}</div>
+                    <div style={{fontSize:12,color:C.sub}}>Expected lost: <span style={{color:C.yellow,fontWeight:600}}>{exp.toFixed(2)} kg</span></div>
+                    <div style={{fontSize:12,color:C.sub}}>Actual lost: <span style={{color:C.accent,fontWeight:600}}>{actual.toFixed(2)} kg</span></div>
+                    {daysLeft&&<div style={{fontSize:12,color:C.sub,marginTop:6}}>ETA at actual pace: <span style={{color:C.green,fontWeight:700}}>{daysLeft} days ({(daysLeft/30).toFixed(1)} months)</span></div>}
+                  </div>
+                );
+              })()}
+            </Card>
+          )}
+
+          {/* Chart */}
+          {sortedW.length>1&&kgToLose>0&&(
+            <Card>
+              <div style={{fontSize:13,fontWeight:600,color:C.sub,marginBottom:10}}>Weight Chart <span style={{color:C.yellow}}>— expected</span> <span style={{color:C.accent}}>— actual</span></div>
+              <svg width="100%" height="110" viewBox={`0 0 ${sortedW.length*44} 100`} preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="wg" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor={C.accent} stopOpacity="0.3"/>
+                    <stop offset="100%" stopColor={C.accent} stopOpacity="0"/>
+                  </linearGradient>
+                </defs>
+                <line x1="0" y1={((wMax-+tw)/(wMax-wMin))*100} x2={sortedW.length*44} y2={((wMax-+tw)/(wMax-wMin))*100} stroke={C.green} strokeDasharray="4 3" strokeWidth="1.5"/>
+                {startDate&&tdee&&<polyline points={sortedW.map((x,i)=>{const e=Math.max(+tw,startW-((500*(new Date(x.date)-new Date(startDate))/86400000)/7700));return`${i*44+22},${Math.max(0,Math.min(100,((wMax-e)/(wMax-wMin))*100))}`;}).join(" ")} fill="none" stroke={C.yellow} strokeWidth="1.5" strokeDasharray="4 2" opacity="0.7"/>}
+                <polyline points={sortedW.map((x,i)=>`${i*44+22},${Math.max(0,Math.min(100,((wMax-x.weight)/(wMax-wMin))*100))}`).join(" ")} fill="none" stroke={C.accent} strokeWidth="2.5"/>
+                {sortedW.map((x,i)=><circle key={i} cx={i*44+22} cy={Math.max(0,Math.min(100,((wMax-x.weight)/(wMax-wMin))*100))} r="4" fill={C.accent} stroke={C.bg} strokeWidth="2"/>)}
+              </svg>
+            </Card>
+          )}
+
+          {sortedW.length>0&&(
+            <Card>
+              <div style={{fontSize:13,fontWeight:600,color:C.sub,marginBottom:10}}>History</div>
+              {[...sortedW].reverse().map((x,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<sortedW.length-1?`1px solid ${C.border}`:"none"}}>
+                  <span style={{fontSize:13,color:C.sub}}>{x.date}</span>
+                  <span style={{fontSize:16,fontWeight:700,color:C.accent}}>{x.weight} <span style={{fontSize:12,fontWeight:400,color:C.sub}}>kg</span></span>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {sortedW.length===0&&<div style={{textAlign:"center",padding:"50px 20px"}}><div style={{fontSize:48,marginBottom:12}}>⚖️</div><div style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:6}}>No weight logged yet</div><div style={{fontSize:13,color:C.sub}}>Log your weight daily for best results</div></div>}
+        </div>
+      )}
+
+      {/* FOODS */}
+      {tab==="Foods"&&(
+        <div style={{padding:"24px 16px 0"}}>
+          <div style={{fontSize:24,fontWeight:800,marginBottom:20}}>Food Library</div>
+          <BtnPrimary onClick={()=>{setShowFF(x=>!x);setEditFood(null);}} style={{marginBottom:14}}>＋ Add New Food</BtnPrimary>
+          {showFF&&(
+            <Card>
+              {[["Food Name","name","text"],["Calories (kcal)","cal","number"],["Protein (g)","protein","number"],["Carbs (g)","carbs","number"],["Fat (g)","fat","number"],["Unit (e.g. piece)","unit","text"]].map(([label,key,type])=>(
+                <div key={key} style={{marginBottom:10}}>
+                  <div style={{fontSize:11,color:C.sub,marginBottom:5,fontWeight:600}}>{label}</div>
+                  <Input type={type} value={newFood[key]} onChange={e=>setNewFood(x=>({...x,[key]:e.target.value}))}/>
+                </div>
+              ))}
+              <BtnPrimary onClick={addFood} style={{marginTop:4}}>Save Food</BtnPrimary>
+            </Card>
+          )}
+          {editFood&&(
+            <Card>
+              <div style={{fontWeight:700,marginBottom:12,fontSize:15}}>Edit: {editFood.name}</div>
+              {[["Calories","cal"],["Protein (g)","protein"],["Carbs (g)","carbs"],["Fat (g)","fat"],["Unit","unit"]].map(([l,k])=>(
+                <div key={k} style={{marginBottom:10}}>
+                  <div style={{fontSize:11,color:C.sub,marginBottom:5,fontWeight:600}}>{l}</div>
+                  <Input value={editFood[k]} onChange={e=>setEditFood(x=>({...x,[k]:e.target.value}))}/>
+                </div>
+              ))}
+              <div style={{display:"flex",gap:10}}>
+                <BtnPrimary onClick={updFood}>Update</BtnPrimary>
+                <BtnPrimary onClick={()=>setEditFood(null)} style={{background:C.card2,boxShadow:"none"}}>Cancel</BtnPrimary>
+              </div>
+            </Card>
+          )}
+          <Input placeholder="🔍 Search foods..." value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:12}}/>
+          <div style={{fontSize:11,color:C.sub,marginBottom:10}}>{filteredFoods.length} items</div>
+          {filteredFoods.map(f=>(
+            <div key={f.id} style={{background:C.card,borderRadius:18,padding:"14px 16px",marginBottom:10,border:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:600,color:C.text,marginBottom:3}}>{f.name}</div>
+                <div style={{fontSize:12,color:C.accent,fontWeight:600}}>{f.cal} kcal <span style={{color:C.sub,fontWeight:400}}>· {f.protein}g P · {f.carbs}g C · {f.fat}g F</span></div>
+                <div style={{fontSize:11,color:C.dim,marginTop:2}}>per {f.unit}</div>
+              </div>
+              <BtnSm onClick={()=>{setEditFood({...f});setShowFF(false);}}>✏️</BtnSm>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* PROFILE */}
+      {tab==="Profile"&&(
+        <div style={{padding:"24px 16px 0"}}>
+          <div style={{fontSize:24,fontWeight:800,marginBottom:20}}>My Profile</div>
+          <Card>
+            <div style={{fontWeight:700,marginBottom:14,fontSize:15}}>Body Metrics</div>
+            {[["Current Weight (kg)","weight"],["Height (cm)","height"],["Age","age"],["Target Weight (kg)","target"]].map(([label,key])=>(
+              <div key={key} style={{marginBottom:12}}>
+                <div style={{fontSize:11,color:C.sub,marginBottom:5,fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>{label}</div>
+                <Input type="number" value={profile[key]} onChange={e=>saveProf({...profile,[key]:e.target.value})}/>
+              </div>
+            ))}
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:11,color:C.sub,marginBottom:5,fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>Start Date</div>
+              <Input type="date" value={profile.startDate||tod()} onChange={e=>saveProf({...profile,startDate:e.target.value})}/>
+            </div>
+            <div>
+              <div style={{fontSize:11,color:C.sub,marginBottom:8,fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>Gender</div>
+              <div style={{display:"flex",gap:10}}>
+                {["male","female"].map(g=>(
+                  <button key={g} onClick={()=>saveProf({...profile,gender:g})} style={{flex:1,padding:"12px",borderRadius:14,border:`2px solid ${profile.gender===g?C.accent:C.border}`,background:profile.gender===g?`${C.accent}22`:C.bg2,color:profile.gender===g?C.accent:C.sub,fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer",textTransform:"capitalize",transition:"all 0.2s"}}>{g==="male"?"👨 Male":"👩 Female"}</button>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {bmi&&(
+            <Card>
+              <div style={{fontWeight:700,marginBottom:14,fontSize:15}}>Your Stats</div>
+              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
+                <Ring pct={Math.min(100,((+bmi-10)/30)*100)} size={90} stroke={9} color={bc.c}>
+                  <div style={{fontSize:20,fontWeight:900,color:bc.c}}>{bmi}</div>
+                  <div style={{fontSize:9,color:C.sub}}>BMI</div>
+                </Ring>
+                <div>
+                  <div style={{fontSize:18,fontWeight:800,color:bc.c,marginBottom:6}}>{bc.l}</div>
+                  {tdee&&<>
+                    <div style={{fontSize:13,color:C.sub}}>TDEE: <span style={{color:C.text,fontWeight:700}}>{tdee} kcal</span></div>
+                    <div style={{fontSize:13,color:C.sub}}>Budget: <span style={{color:C.accent,fontWeight:700}}>{defCal} kcal/day</span></div>
+                  </>}
+                </div>
+              </div>
+              {kgToLose>0&&weeksNeeded&&(
+                <div style={{background:`${C.accent}15`,borderRadius:14,padding:"12px 14px",border:`1px solid ${C.accent}33`}}>
+                  <div style={{fontSize:13,color:C.sub}}>To lose <span style={{color:C.text,fontWeight:700}}>{kgToLose} kg</span> at 0.45kg/week:</div>
+                  <div style={{fontSize:20,fontWeight:900,color:C.accent,marginTop:4}}>{weeksNeeded} weeks <span style={{fontSize:14,color:C.sub,fontWeight:400}}>({(weeksNeeded/4.3).toFixed(1)} months)</span></div>
+                </div>
+              )}
+              <div style={{fontSize:10,color:C.dim,marginTop:12}}>Mifflin-St Jeor × 1.375 (light activity). −500 kcal/day = ~0.45 kg/week loss.</div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Bottom Nav */}
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:`${C.bg2}f0`,backdropFilter:"blur(20px)",borderTop:`1px solid ${C.border}`,display:"flex",padding:"8px 0 12px",zIndex:99}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"4px 0"}}>
+            <div style={{width:44,height:34,borderRadius:12,background:tab===t.id?`${C.accent}22`:"none",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s",boxShadow:tab===t.id?`0 0 16px ${C.accent}33`:"none"}}>
+              <span style={{fontSize:18}}>{t.ic}</span>
+            </div>
+            <span style={{fontSize:10,fontWeight:tab===t.id?700:400,color:tab===t.id?C.accent:C.sub}}>{t.id}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
