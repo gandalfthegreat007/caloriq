@@ -22,7 +22,7 @@
 
 ## 🚀 Live App
 
-👉 **[https://YOURUSERNAME.github.io/caloriq](https://YOURUSERNAME.github.io/caloriq)**
+👉 **[https://gandalfthegreat007.github.io/caloriq/](https://gandalfthegreat007.github.io/caloriq/)**
 
 Open on mobile → browser menu → **Add to Home Screen**
 
